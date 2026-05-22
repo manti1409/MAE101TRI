@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Đề Thi Trắc Nghiệm - Biến Đổi Gauss</title>
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(','\\)'], ['$', '$']]
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f6fb;
+      margin:0;
+      padding:20px;
+      color:#222;
+    }
+
+    h1{
+      text-align:center;
+      color:#0a4ea3;
+    }
+
+    .subtitle{
+      text-align:center;
+      margin-bottom:30px;
+      color:#555;
+    }
+
+    .question-box{
+      background:white;
+      border-radius:12px;
+      padding:20px;
+      margin-bottom:25px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .question-title{
+      font-weight:bold;
+      margin-bottom:15px;
+      font-size:18px;
+      color:#0a4ea3;
+    }
+
+    .difficulty{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:20px;
+      font-size:12px;
+      margin-bottom:10px;
+      color:white;
+    }
+
+    .easy{
+      background:#1c9b4d;
+    }
+
+    .medium{
+      background:#d49a00;
+    }
+
+    .hard{
+      background:#c62828;
+    }
+
+    .theory{
+      background:#5e35b1;
+    }
+
+    .option{
+      border:2px solid #ddd;
+      border-radius:8px;
+      padding:12px;
+      margin:10px 0;
+      cursor:pointer;
+      transition:0.2s;
+    }
+
+    .option:hover{
+      background:#eef3ff;
+    }
+
+    .correct{
+      background:#c8f7c5 !important;
+      border-color:#1c9b4d !important;
+    }
+
+    .wrong{
+      background:#ffd6d6 !important;
+      border-color:#c62828 !important;
+    }
+
+    .explanation{
+      margin-top:15px;
+      padding:15px;
+      background:#f0f5ff;
+      border-left:5px solid #0a4ea3;
+      display:none;
+      border-radius:8px;
+    }
+
+    .tip{
+      margin-top:10px;
+      padding:10px;
+      background:#fff8dc;
+      border-left:5px solid #d49a00;
+      border-radius:8px;
+    }
+
+    .score-box{
+      position:sticky;
+      top:0;
+      background:#0a4ea3;
+      color:white;
+      padding:15px;
+      text-align:center;
+      font-size:20px;
+      z-index:1000;
+      border-radius:10px;
+      margin-bottom:20px;
+    }
+
+    button{
+      background:#0a4ea3;
+      color:white;
+      border:none;
+      padding:12px 20px;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:16px;
+      margin:20px auto;
+      display:block;
+    }
+
+    button:hover{
+      background:#08397a;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ĐỀ THI TRẮC NGHIỆM BIẾN ĐỔI GAUSS</h1>
+  <div class="subtitle">
+    20 câu hỏi tương tác • MathJax • Giải thích chi tiết • Mẹo làm nhanh
+  </div>
+
+  <div class="score-box">
+    Điểm hiện tại: <span id="score">0</span> / 20
+  </div>
+
+  <div id="quiz"></div>
+
+  <button onclick="downloadHTML()">Tải File HTML</button>
+
+  <script>
+    const questions = [
+
+      // ================= LÝ THUYẾT =================
+
+      {
+        type:"Lý thuyết",
+        difficulty:"theory",
+        question:"Mục tiêu chính của phép biến đổi Gauss là gì?",
+        options:[
+          "Tạo thêm nghiệm mới",
+          "Đưa hệ về dạng dễ giải hơn nhưng giữ nguyên tập nghiệm",
+          "Làm ma trận lớn hơn",
+          "Loại bỏ toàn bộ ẩn số"
+        ],
+        answer:1,
+        explanation:"Gauss biến đổi hệ phương trình sang dạng bậc thang để giải dễ hơn nhưng vẫn bảo toàn tập nghiệm.",
+        tip:"Hãy nhớ: Gauss = thay đổi ngôn ngữ mô tả nhưng không đổi sự thật."
+      },
+
+      {
+        type:"Lý thuyết",
+        difficulty:"theory",
+        question:"Phép biến đổi nào sau đây KHÔNG phải phép biến đổi hàng cơ bản?",
+        options:[
+          "Đổi chỗ hai hàng",
+          "Nhân một hàng với số khác 0",
+          "Cộng bội một hàng vào hàng khác",
+          "Bình phương toàn bộ hàng"
+        ],
+        answer:3,
+        explanation:"Bình phương hàng sẽ làm thay đổi tập nghiệm nên không phải phép biến đổi tương đương.",
+        tip:"Chỉ có 3 phép cơ bản: đổi hàng, nhân hàng, cộng bội hàng."
+      },
+
+      {
+        type:"Lý thuyết",
+        difficulty:"theory",
+        question:"Pivot trong Gauss là gì?",
+        options:[
+          "Phần tử bằng 0",
+          "Phần tử dẫn đầu dùng để khử",
+          "Nghiệm cuối cùng",
+          "Định thức ma trận"
+        ],
+        answer:1,
+        explanation:"Pivot là phần tử dẫn đầu của hàng dùng để khử các phần tử bên dưới.",
+        tip:"Pivot giống 'điểm tựa' để khử các số khác."
+      },
+
+      {
+        type:"Lý thuyết",
+        difficulty:"theory",
+        question:"Nếu một biến không có pivot thì biến đó gọi là gì?",
+        options:[
+          "Biến giả",
+          "Biến âm",
+          "Biến tự do",
+          "Biến loại bỏ"
+        ],
+        answer:2,
+        explanation:"Không có pivot nghĩa là biến không bị ràng buộc hoàn toàn → biến tự do.",
+        tip:"Không pivot = còn tự do lựa chọn."
+      },
+
+      {
+        type:"Lý thuyết",
+        difficulty:"theory",
+        question:"Dạng bậc thang có đặc điểm nào?",
+        options:[
+          "Các phần tử dưới pivot bằng 0",
+          "Mọi phần tử đều bằng 1",
+          "Không có số âm",
+          "Ma trận vuông"
+        ],
+        answer:0,
+        explanation:"Dạng bậc thang là dạng có các phần tử dưới pivot bằng 0.",
+        tip:"Gauss luôn hướng tới tam giác trên."
+      },
+
+      // ================= DỄ =================
+
+      {
+        type:"Dễ",
+        difficulty:"easy",
+        question:"Giải hệ: \\(x+y=5\\), \\(x-y=1\\). Giá trị của \\(x\\) là?",
+        options:["1","2","3","4"],
+        answer:2,
+        explanation:"Cộng hai phương trình: \\(2x=6 \\Rightarrow x=3\\).",
+        tip:"Hệ đối xứng dấu ± thường cộng/trừ trực tiếp rất nhanh."
+      },
+
+      {
+        type:"Dễ",
+        difficulty:"easy",
+        question:"Multiplier \\(m_{21}\\) của hệ số 6 và pivot 2 là bao nhiêu?",
+        options:["2","3","4","6"],
+        answer:1,
+        explanation:"\\(m_{21}=\\frac{6}{2}=3\\).",
+        tip:"Multiplier = hệ số cần khử / pivot."
+      },
+
+      {
+        type:"Dễ",
+        difficulty:"easy",
+        question:"Sau phép \\(R_2 \\leftarrow R_2 - 2R_1\\), với \\(R_1=[1,2]\\), \\(R_2=[3,5]\\), hàng mới \\(R_2\\) là?",
+        options:[
+          "[1,1]",
+          "[2,1]",
+          "[3,1]",
+          "[5,2]"
+        ],
+        answer:0,
+        explanation:"\\([3,5]-2[1,2]=[1,1]\\).",
+        tip:"Nhân trước rồi mới trừ từng phần tử."
+      },
+
+      {
+        type:"Dễ",
+        difficulty:"easy",
+        question:"Hệ có bao nhiêu ẩn: \\(2x+y-z=3\\)?",
+        options:["1","2","3","4"],
+        answer:2,
+        explanation:"Có ba ẩn: \\(x,y,z\\).",
+        tip:"Đếm số biến khác nhau."
+      },
+
+      {
+        type:"Dễ",
+        difficulty:"easy",
+        question:"Dạng nào dễ thế ngược nhất?",
+        options:[
+          "Ma trận ngẫu nhiên",
+          "Dạng bậc thang tam giác trên",
+          "Ma trận toàn số 0",
+          "Ma trận chéo"
+        ],
+        answer:1,
+        explanation:"Gauss đưa hệ về tam giác trên để thế ngược từ dưới lên.",
+        tip:"Gauss luôn muốn tạo tam giác trên."
+      },
+
+      // ================= TRUNG BÌNH =================
+
+      {
+        type:"Trung bình",
+        difficulty:"medium",
+        question:"Giải hệ: \\(2x+y=7\\), \\(x-y=2\\). Giá trị của \\(y\\) là?",
+        options:["1","2","3","4"],
+        answer:0,
+        explanation:"Từ \\(x-y=2\\Rightarrow x=y+2\\). Thế vào phương trình đầu: \\(2(y+2)+y=7\\Rightarrow 3y=3\\Rightarrow y=1\\).",
+        tip:"Hệ 2 ẩn nhỏ → dùng thế nhanh hơn Gauss."
+      },
+
+      {
+        type:"Trung bình",
+        difficulty:"medium",
+        question:"Hạng của ma trận bằng gì?",
+        options:[
+          "Số hàng",
+          "Số cột",
+          "Số pivot khác 0",
+          "Định thức"
+        ],
+        answer:2,
+        explanation:"Rank là số pivot khác 0 trong dạng bậc thang.",
+        tip:"Đếm pivot = đếm rank."
+      },
+
+      {
+        type:"Trung bình",
+        difficulty:"medium",
+        question:"Nếu pivot bằng 0 thì cần làm gì?",
+        options:[
+          "Dừng ngay",
+          "Nhân tất cả với 0",
+          "Đổi hàng",
+          "Xóa ma trận"
+        ],
+        answer:2,
+        explanation:"Ta thường đổi hàng để tìm pivot khác 0.",
+        tip:"Pivot 0 → swap row."
+      },
+
+      {
+        type:"Trung bình",
+        difficulty:"medium",
+        question:"Định thức của ma trận tam giác trên bằng?",
+        options:[
+          "Tổng đường chéo",
+          "Tích các phần tử đường chéo",
+          "Số hàng",
+          "0"
+        ],
+        answer:1,
+        explanation:"\\(\\det(A)=\\prod a_{ii}\\) với ma trận tam giác.",
+        tip:"Tam giác → nhân đường chéo."
+      },
+
+      {
+        type:"Trung bình",
+        difficulty:"medium",
+        question:"Hệ vô số nghiệm khi nào?",
+        options:[
+          "Rank < số ẩn",
+          "Rank > số ẩn",
+          "Pivot toàn số âm",
+          "Ma trận vuông"
+        ],
+        answer:0,
+        explanation:"Thiếu pivot → tồn tại biến tự do → vô số nghiệm.",
+        tip:"Thiếu pivot = dư tự do."
+      },
+
+      // ================= KHÓ =================
+
+      {
+        type:"Khó",
+        difficulty:"hard",
+        question:"Giải hệ: \\(x+y+z=6\\), \\(x-y+z=2\\), \\(2x+z=5\\). Giá trị của \\(z\\) là?",
+        options:["1","2","3","4"],
+        answer:0,
+        explanation:"Lấy PT1 - PT2: \\(2y=4\\Rightarrow y=2\\). Từ PT3: \\(2x+z=5\\). PT1: \\(x+2+z=6\\Rightarrow x+z=4\\). Trừ hai phương trình: \\(x=1\\Rightarrow z=3\\). Nhưng kiểm tra lại PT3: \\(2+z=5\\Rightarrow z=3\\).",
+        tip:"Trừ hai phương trình gần giống nhau để khử nhanh.",
+      },
+
+      {
+        type:"Khó",
+        difficulty:"hard",
+        question:"Nếu ma trận có 3 hàng nhưng chỉ có 2 pivot thì số biến tự do là?",
+        options:["0","1","2","3"],
+        answer:1,
+        explanation:"Số biến tự do = số ẩn - số pivot.",
+        tip:"Free variables = n - rank."
+      },
+
+      {
+        type:"Khó",
+        difficulty:"hard",
+        question:"Phép nào làm đổi dấu định thức?",
+        options:[
+          "Cộng bội hàng",
+          "Đổi chỗ hai hàng",
+          "Nhân hàng với 1",
+          "Không phép nào"
+        ],
+        answer:1,
+        explanation:"Swap hai hàng làm định thức đổi dấu.",
+        tip:"Swap → đổi dấu det."
+      },
+
+      {
+        type:"Khó",
+        difficulty:"hard",
+        question:"Ma trận nào chắc chắn khả nghịch?",
+        options:[
+          "Có pivot ở mọi cột",
+          "Có một hàng 0",
+          "Rank < n",
+          "Định thức bằng 0"
+        ],
+        answer:0,
+        explanation:"Đủ pivot nghĩa là rank đầy đủ → khả nghịch.",
+        tip:"Full pivot = invertible."
+      },
+
+      {
+        type:"Khó",
+        difficulty:"hard",
+        question:"Nếu sau Gauss xuất hiện hàng \\([0\\ 0\\ 0|5]\\) thì hệ?",
+        options:[
+          "Có nghiệm duy nhất",
+          "Vô số nghiệm",
+          "Vô nghiệm",
+          "Không xác định"
+        ],
+        answer:2,
+        explanation:"Hàng này tương ứng \\(0=5\\), điều vô lý nên hệ vô nghiệm.",
+        tip:"0 = số khác 0 → vô nghiệm ngay."
+      }
+
+    ];
+
+    const quiz = document.getElementById("quiz");
+    let score = 0;
+
+    questions.forEach((q, index) => {
+
+      const box = document.createElement("div");
+      box.className = "question-box";
+
+      box.innerHTML = `
+        <div class="difficulty ${q.difficulty}">
+          ${q.type}
+        </div>
+
+        <div class="question-title">
+          Câu ${index + 1}: ${q.question}
+        </div>
+      `;
+
+      q.options.forEach((opt, i) => {
+
+        const btn = document.createElement("div");
+        btn.className = "option";
+        btn.innerHTML = opt;
+
+        btn.onclick = () => {
+
+          if(box.classList.contains("answered")) return;
+
+          box.classList.add("answered");
+
+          const options = box.querySelectorAll(".option");
+
+          options[q.answer].classList.add("correct");
+
+          if(i !== q.answer){
+            btn.classList.add("wrong");
+          } else {
+            score++;
+            document.getElementById("score").innerText = score;
+          }
+
+          explanation.style.display = "block";
+
+          MathJax.typeset();
+        };
+
+        box.appendChild(btn);
+      });
+
+      const explanation = document.createElement("div");
+      explanation.className = "explanation";
+
+      explanation.innerHTML = `
+        <b>Đáp án đúng:</b> ${q.options[q.answer]} <br><br>
+        <b>Giải thích:</b> ${q.explanation}
+
+        <div class="tip">
+          <b>Mẹo làm nhanh:</b> ${q.tip}
+        </div>
+      `;
+
+      box.appendChild(explanation);
+
+      quiz.appendChild(box);
+    });
+
+    function downloadHTML() {
+
+      const content = document.documentElement.outerHTML;
+
+      const blob = new Blob([content], {type:"text/html"});
+
+      const a = document.createElement("a");
+
+      a.href = URL.createObjectURL(blob);
+
+      a.download = "de-thi-gauss.html";
+
+      a.click();
+    }
+
+  </script>
+
+</body>
+</html>
