@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>✨ Quản lý Prompt Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#8b5cf6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    }
+    .mic-button.recording {
+      background-color: #ef4444;
+      color: white;
+      animation: pulse 1.5s infinite;
+      transform: scale(1.1);
+    }
+    .toast {
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    .prompt-card {
+      transition: all 0.2s ease;
+    }
+    .prompt-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .collapse-content {
+      max-height: 500px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .collapse-content.collapsed {
+      max-height: 3rem;
+    }
+    /* Dark mode styles */
+    .dark .prompt-card {
+      @apply bg-gray-800 border-gray-700;
+    }
+    .dark input, .dark select, .dark textarea {
+      @apply bg-gray-700 border-gray-600 text-white placeholder-gray-400;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen p-4 transition-colors">
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+      <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <i class="fas fa-robot mr-2"></i>Quản lý Prompt Pro
+      </h1>
+      <div class="flex items-center gap-3">
+        <button id="themeToggle" class="p-2 rounded-lg bg-white dark:bg-gray-700 shadow hover:shadow-md transition" title="Chuyển chế độ">
+          <i class="fas fa-moon dark:hidden"></i>
+          <i class="fas fa-sun hidden dark:inline"></i>
+        </button>
+        <span class="text-sm text-gray-500 dark:text-gray-400" id="stats"></span>
+      </div>
+    </header>
+
+    <!-- Main Card -->
+    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-6 mb-6">
+      
+      <!-- Form nhập Prompt -->
+      <form id="promptForm" class="space-y-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <!-- Tiêu đề + Mic -->
+          <div class="relative">
+            <input id="title" type="text" placeholder="📝 Tiêu đề *" required 
+              class="w-full border rounded-xl p-3 pr-10 focus:ring-2 focus:ring-primary focus:border-transparent transition" />
+            <button type="button" id="mic-title" class="mic-button absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition" title="Nhập bằng giọng nói">
+              <i class="fas fa-microphone"></i>
+            </button>
+          </div>
+          
+          <!-- Danh mục + Mic -->
+          <div class="relative">
+            <input id="category" type="text" placeholder="📁 Danh mục *" list="categoryList" required
+              class="w-full border rounded-xl p-3 pr-10 focus:ring-2 focus:ring-primary focus:border-transparent transition" />
+            <datalist id="categoryList"></datalist>
+            <button type="button" id="mic-category" class="mic-button absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition" title="Nhập bằng giọng nói">
+              <i class="fas fa-microphone"></i>
+            </button>
+          </div>
+          
+          <!-- Tags -->
+          <div>
+            <input id="tags" type="text" placeholder="🏷️ Tags (cách nhau bởi dấu phẩy)"
+              class="w-full border rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-transparent transition" />
+          </div>
+          
+          <!-- Actions -->
+          <div class="flex gap-2">
+            <button type="submit" id="submitBtn" class="flex-1 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-medium py-3 px-4 rounded-xl transition transform hover:scale-[1.02]">
+              <i class="fas fa-plus mr-1"></i><span id="submitText">Thêm</span>
+            </button>
+            <button type="button" id="cancelEdit" class="hidden px-4 py-3 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Nội dung + Mic -->
+        <div class="relative">
+          <textarea id="content" rows="3" placeholder="💬 Nội dung prompt hoặc URL..." required
+            class="w-full border rounded-xl p-3 pr-10 focus:ring-2 focus:ring-primary focus:border-transparent transition resize-none"></textarea>
+          <button type="button" id="mic-content" class="mic-button absolute right-3 bottom-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition" title="Nhập bằng giọng nói">
+            <i class="fas fa-microphone"></i>
+          </button>
+        </div>
+        
+        <!-- Status -->
+        <div id="voiceStatus" class="text-center text-sm text-gray-500 dark:text-gray-400 min-h-[1.5rem] transition"></div>
+      </form>
+
+      <!-- Toolbar -->
+      <div class="flex flex-wrap gap-2 mb-4 pb-4 border-b dark:border-gray-700">
+        <div class="flex-1 min-w-[200px] relative">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input id="search" type="text" placeholder="🔍 Tìm kiếm..." 
+            class="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition" />
+        </div>
+        
+        <select id="viewMode" class="border rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary">
+          <option value="grouped">📊 Theo nhóm</option>
+          <option value="list">📋 Danh sách</option>
+          <option value="grid">⊞ Lưới</option>
+        </select>
+        
+        <select id="sortBy" class="border rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary">
+          <option value="newest">🕐 Mới nhất</option>
+          <option value="oldest">🕑 Cũ nhất</option>
+          <option value="title">🔤 A-Z</option>
+          <option value="usage">⭐ Dùng nhiều</option>
+        </select>
+        
+        <div id="categoryFilterWrap" class="hidden">
+          <select id="categoryFilter" class="border rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary">
+            <option value="all">🗂️ Tất cả danh mục</option>
+          </select>
+        </div>
+        
+        <button onclick="exportPrompts()" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl transition" title="Xuất JSON">
+          <i class="fas fa-download"></i>
+        </button>
+        <label class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl transition cursor-pointer" title="Nhập JSON">
+          <i class="fas fa-upload"></i>
+          <input type="file" id="importFile" class="hidden" accept=".json" />
+        </label>
+        <button id="bulkDelete" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition hidden" title="Xóa đã chọn">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+      </div>
+
+      <!-- Bulk Actions Info -->
+      <div id="bulkInfo" class="hidden mb-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-blue-700 dark:text-blue-300 text-sm">
+        <i class="fas fa-info-circle mr-2"></i>
+        <span id="bulkCount">0</span> prompt đã chọn. 
+        <button onclick="clearSelection()" class="underline hover:text-blue-900 dark:hover:text-blue-100 ml-2">Hủy chọn</button>
+      </div>
+
+      <!-- Prompt List -->
+      <div id="promptList" class="space-y-4 min-h-[200px]"></div>
+      
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden text-center py-12">
+        <i class="fas fa-inbox text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+        <p class="text-gray-500 dark:text-gray-400 text-lg">Chưa có prompt nào</p>
+        <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Hãy thêm prompt đầu tiên của bạn!</p>
+      </div>
+      
+      <!-- Pagination -->
+      <div id="pagination" class="mt-6 flex justify-center gap-2"></div>
+    </div>
+
+    <!-- Footer Stats -->
+    <footer class="text-center text-sm text-gray-500 dark:text-gray-400 pb-4">
+      <p>Dữ liệu được lưu trữ cục bộ trên trình duyệt của bạn 🔐</p>
+      <p class="mt-1">Phiên bản 2.0 • Hỗ trợ Voice Input • Dark Mode • Bulk Actions</p>
+    </footer>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-40">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md mx-4 shadow-2xl transform transition-all">
+      <h3 class="text-lg font-semibold mb-3 dark:text-white" id="modalTitle">Xác nhận</h3>
+      <p class="text-gray-600 dark:text-gray-300 mb-6" id="modalMessage"></p>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-500 transition">Hủy</button>
+        <button id="modalConfirm" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== CONFIG & STATE ====================
+    const CONFIG = {
+      itemsPerPage: 6,
+      debounceDelay: 300,
+      toastDuration: 3000,
+      storageKey: 'prompts_pro_v2'
+    };
+
+    const state = {
+      prompts: [],
+      editingIndex: -1,
+      currentPage: 1,
+      selectedIds: new Set(),
+      filters: {
+        search: '',
+        category: 'all',
+        viewMode: 'grouped',
+        sortBy: 'newest'
+      },
+      recognition: null,
+      isRecording: false,
+      currentMicTarget: null,
+      undoStack: []
+    };
+
+    // ==================== UTILITIES ====================
+    const $ = (sel, ctx = document) => ctx.querySelector(sel);
+    const $$ = (sel, ctx = document) => ctx.querySelectorAll(sel);
+    
+    const debounce = (fn, delay) => {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), delay);
+      };
+    };
+
+    const showToast = (message, type = 'info', duration = CONFIG.toastDuration) => {
+      const container = $('#toast-container');
+      const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+      const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        info: 'bg-blue-500',
+        warning: 'bg-yellow-500'
+      };
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${colors[type]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[250px]`;
+      toast.innerHTML = `
+        <span class="text-lg font-bold">${icons[type]}</span>
+        <span class="flex-1">${message}</span>
+        <button onclick="this.parentElement.remove()" class="hover:opacity-75">×</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), duration);
+    };
+
+    const confirmAction = (title, message) => new Promise(resolve => {
+      $('#modalTitle').textContent = title;
+      $('#modalMessage').textContent = message;
+      $('#confirmModal').classList.remove('hidden');
+      $('#confirmModal').classList.add('flex');
+      
+      const handler = () => {
+        closeModal();
+        resolve(true);
+        $('#modalConfirm').removeEventListener('click', handler);
+      };
+      $('#modalConfirm').onclick = handler;
+    });
+
+    const closeModal = () => {
+      $('#confirmModal').classList.add('hidden');
+      $('#confirmModal').classList.remove('flex');
+    };
+
+    const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    const sanitize = (str) => {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    };
+
+    const isUrl = (str) => /^https?:\/\/.+/.test(str);
+
+    // ==================== STORAGE ====================
+    const loadPrompts = () => {
+      try {
+        const data = localStorage.getItem(CONFIG.storageKey);
+        state.prompts = data ? JSON.parse(data) : [];
+      } catch {
+        state.prompts = [];
+        showToast('Lỗi tải dữ liệu!', 'error');
+      }
+    };
+
+    const savePrompts = () => {
+      try {
+        localStorage.setItem(CONFIG.storageKey, JSON.stringify(state.prompts));
+        updateStats();
+      } catch {
+        showToast('Lỗi lưu dữ liệu!', 'error');
+      }
+    };
+
+    const addToUndo = (action, data) => {
+      state.undoStack.push({ action, data, timestamp: Date.now() });
+      if (state.undoStack.length > 10) state.undoStack.shift();
+    };
+
+    // ==================== SPEECH RECOGNITION ====================
+    const setupSpeechRecognition = () => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        showToast('Trình duyệt không hỗ trợ nhận diện giọng nói', 'warning');
+        $$('.mic-button').forEach(btn => btn.disabled = true);
+        return;
+      }
+
+      state.recognition = new SpeechRecognition();
+      state.recognition.lang = 'vi-VN';
+      state.recognition.continuous = false;
+      state.recognition.interimResults = false;
+
+      state.recognition.onstart = () => {
+        state.isRecording = true;
+        state.currentMicTarget?.classList.add('recording');
+        $('#voiceStatus').textContent = '🎤 Đang nghe...';
+        $('#voiceStatus').className = 'text-center text-sm text-primary font-medium';
+      };
+
+      state.recognition.onend = () => {
+        state.isRecording = false;
+        state.currentMicTarget?.classList.remove('recording');
+        setTimeout(() => {
+          if ($('#voiceStatus').textContent.includes('Đang nghe')) {
+            $('#voiceStatus').textContent = '';
+            $('#voiceStatus').className = 'text-center text-sm text-gray-500 dark:text-gray-400';
+          }
+        }, 1000);
+      };
+
+      state.recognition.onerror = (e) => {
+        state.isRecording = false;
+        state.currentMicTarget?.classList.remove('recording');
+        const errors = {
+          'no-speech': 'Không nhận được giọng nói',
+          'audio-capture': 'Không tìm thấy microphone',
+          'not-allowed': 'Chưa cấp quyền microphone'
+        };
+        showToast(errors[e.error] || 'Lỗi nhận diện giọng nói', 'error');
+        $('#voiceStatus').textContent = '';
+      };
+
+      state.recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript.trim();
+        const target = state.currentMicTarget?.id;
+        
+        if (target === 'mic-title') $('#title').value = text;
+        else if (target === 'mic-content') $('#content').value = text;
+        else if (target === 'mic-category') $('#category').value = text;
+        
+        showToast(`✓ "${text}"`, 'success', 2000);
+        $('#voiceStatus').textContent = `✓ Đã nhập: "${text}"`;
+      };
+
+      // Setup mic buttons
+      $$('.mic-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (state.isRecording) {
+            state.recognition?.stop();
+          } else {
+            state.currentMicTarget = btn;
+            state.recognition?.start().catch(e => {
+              showToast('Không thể khởi động microphone', 'error');
+            });
+          }
+        });
+      });
+
+      // Stop recording with Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && state.isRecording) {
+          state.recognition?.stop();
+          showToast('Đã dừng ghi âm', 'info', 1500);
+        }
+      });
+    };
+
+    // ==================== RENDERING ====================
+    const updateCategoryDatalist = () => {
+      const categories = [...new Set(state.prompts.map(p => p.category))].sort();
+      const datalist = $('#categoryList');
+      datalist.innerHTML = categories.map(cat => `<option value="${sanitize(cat)}">`).join('');
+      
+      // Update category filter
+      const filter = $('#categoryFilter');
+      if (filter) {
+        const current = filter.value;
+        filter.innerHTML = '<option value="all">🗂️ Tất cả danh mục</option>' + 
+          categories.map(cat => `<option value="${sanitize(cat)}">${sanitize(cat)}</option>`).join('');
+        filter.value = categories.includes(current) ? current : 'all';
+      }
+    };
+
+    const updateStats = () => {
+      const total = state.prompts.length;
+      const categories = new Set(state.prompts.map(p => p.category)).size;
+      const today = state.prompts.filter(p => {
+        const created = new Date(p.createdAt || 0);
+        const now = new Date();
+        return created.toDateString() === now.toDateString();
+      }).length;
+      
+      $('#stats').innerHTML = `<i class="fas fa-database mr-1"></i>${total} prompt • ${categories} danh mục • ${today} mới hôm nay`;
+    };
+
+    const getFilteredPrompts = () => {
+      const { search, category, sortBy } = state.filters;
+      let result = [...state.prompts];
+      
+      // Search
+      if (search) {
+        const q = search.toLowerCase();
+        result = result.filter(p => 
+          p.title.toLowerCase().includes(q) ||
+          p.content.toLowerCase().includes(q) ||
+          p.tags?.some(t => t.toLowerCase().includes(q)) ||
+          p.category.toLowerCase().includes(q)
+        );
+      }
+      
+      // Category filter
+      if (category !== 'all') {
+        result = result.filter(p => p.category === category);
+      }
+      
+      // Sort
+      const sorters = {
+        newest: (a, b) => (b.createdAt || 0) - (a.createdAt || 0),
+        oldest: (a, b) => (a.createdAt || 0) - (b.createdAt || 0),
+        title: (a, b) => a.title.localeCompare(b.title, 'vi'),
+        usage: (a, b) => (b.copyCount || 0) - (a.copyCount || 0)
+      };
+      result.sort(sorters[sortBy] || sorters.newest);
+      
+      return result;
+    };
+
+    const renderPrompts = () => {
+      const list = $('#promptList');
+      const empty = $('#emptyState');
+      const filtered = getFilteredPrompts();
+      const { viewMode, category } = state.filters;
+      
+      // Update UI states
+      $('#categoryFilterWrap').classList.toggle('hidden', viewMode !== 'grouped');
+      empty.classList.toggle('hidden', filtered.length > 0);
+      
+      if (filtered.length === 0) {
+        list.innerHTML = '';
+        renderPagination(1);
+        return;
+      }
+      
+      // Pagination
+      const totalPages = Math.ceil(filtered.length / CONFIG.itemsPerPage);
+      state.currentPage = Math.min(state.currentPage, totalPages);
+      const start = (state.currentPage - 1) * CONFIG.itemsPerPage;
+      const pageItems = filtered.slice(start, start + CONFIG.itemsPerPage);
+      
+      // Render based on view mode
+      if (viewMode === 'grouped') {
+        renderGrouped(list, pageItems, filtered);
+      } else {
+        renderList(list, pageItems, viewMode);
+      }
+      
+      renderPagination(totalPages);
+      updateBulkActions();
+    };
+
+    const renderGrouped = (container, items, allFiltered) => {
+      container.innerHTML = '';
+      const groups = {};
+      
+      items.forEach(p => {
+        if (!groups[p.category]) groups[p.category] = [];
+        groups[p.category].push(p);
+      });
+      
+      Object.entries(groups).forEach(([cat, prompts]) => {
+        const section = document.createElement('div');
+        section.className = 'mb-6';
+        section.innerHTML = `
+          <h3 class="text-lg font-semibold text-primary dark:text-primary mb-3 flex items-center gap-2">
+            <i class="fas fa-folder-open"></i>
+            ${sanitize(cat)}
+            <span class="text-sm font-normal text-gray-400">(${prompts.length})</span>
+          </h3>
+        `;
+        
+        prompts.forEach(p => {
+          section.appendChild(createPromptCard(p));
+        });
+        
+        container.appendChild(section);
+      });
+    };
+
+    const renderList = (container, items, viewMode) => {
+      container.innerHTML = '';
+      container.className = viewMode === 'grid' 
+        ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' 
+        : 'space-y-3';
+      
+      items.forEach(p => {
+        container.appendChild(createPromptCard(p));
+      });
+    };
+
+    const createPromptCard = (prompt) => {
+      const index = state.prompts.findIndex(p => p.id === prompt.id);
+      const isSelected = state.selectedIds.has(prompt.id);
+      const isLong = prompt.content.length > 200;
+      
+      const div = document.createElement('div');
+      div.className = `prompt-card border rounded-xl p-4 bg-white dark:bg-gray-800 dark:border-gray-700 ${isSelected ? 'ring-2 ring-primary' : ''}`;
+      div.dataset.id = prompt.id;
+      
+      div.innerHTML = `
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <input type="checkbox" data-prompt-id="${prompt.id}" 
+              class="bulk-select w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              ${isSelected ? 'checked' : ''}>
+            <h4 class="font-semibold text-gray-800 dark:text-white truncate" title="${sanitize(prompt.title)}">
+              ${sanitize(prompt.title)}
+            </h4>
+          </div>
+          <span class="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary dark:bg-primary/20">
+            ${sanitize(prompt.category)}
+          </span>
+        </div>
+        
+        ${prompt.url ? `
+          <a href="${sanitize(prompt.url)}" target="_blank" 
+            class="block mb-2 text-sm text-blue-500 hover:underline truncate" title="${sanitize(prompt.url)}">
+            <i class="fas fa-link mr-1"></i>${sanitize(prompt.url)}
+          </a>
+        ` : ''}
+        
+        <div class="collapse-content ${isLong ? 'collapsed' : ''} mb-3" id="content-${prompt.id}">
+          <p class="text-gray-600 dark:text-gray-300 text-sm whitespace-pre-wrap">${sanitize(prompt.content)}</p>
+        </div>
+        ${isLong ? `
+          <button onclick="toggleCollapse('${prompt.id}')" 
+            class="text-xs text-primary hover:underline mb-2">
+            <span class="show-more">Xem thêm ▼</span>
+            <span class="show-less hidden">Thu gọn ▲</span>
+          </button>
+        ` : ''}
+        
+        ${prompt.tags?.length ? `
+          <div class="flex flex-wrap gap-1 mb-3">
+            ${prompt.tags.map(t => `<span class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">#${sanitize(t)}</span>`).join('')}
+          </div>
+        ` : ''}
+        
+        <div class="flex flex-wrap gap-2 pt-3 border-t dark:border-gray-700">
+          <button onclick="copyPrompt(${index})" 
+            class="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
+            title="Sao chép">
+            <i class="fas fa-copy"></i> Copy
+            ${prompt.copyCount > 0 ? `<span class="text-xs opacity-75">(${prompt.copyCount})</span>` : ''}
+          </button>
+          <button onclick="editPrompt(${index})" 
+            class="flex items-center gap-1 px-3 py-1.5 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition"
+            title="Chỉnh sửa">
+            <i class="fas fa-edit"></i> Sửa
+          </button>
+          <button onclick="deletePrompt(${index})" 
+            class="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+            title="Xóa">
+            <i class="fas fa-trash"></i>
+          </button>
+          <button onclick="sharePrompt(${index})" 
+            class="flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition"
+            title="Chia sẻ">
+            <i class="fas fa-share-alt"></i>
+          </button>
+        </div>
+        
+        <div class="mt-2 text-xs text-gray-400 dark:text-gray-500 flex justify-between">
+          <span><i class="fas fa-clock mr-1"></i>${formatDate(prompt.createdAt)}</span>
+          ${prompt.modifiedAt ? `<span><i class="fas fa-pen mr-1"></i>${formatDate(prompt.modifiedAt)}</span>` : ''}
+        </div>
+      `;
+      
+      // Bulk select handler
+      div.querySelector('.bulk-select').addEventListener('change', (e) => {
+        if (e.target.checked) {
+          state.selectedIds.add(prompt.id);
+        } else {
+          state.selectedIds.delete(prompt.id);
+        }
+        updateBulkActions();
+      });
+      
+      return div;
+    };
+
+    const toggleCollapse = (id) => {
+      const content = $(`#content-${id}`);
+      const btn = content.nextElementSibling;
+      content.classList.toggle('collapsed');
+      btn.querySelector('.show-more').classList.toggle('hidden');
+      btn.querySelector('.show-less').classList.toggle('hidden');
+    };
+
+    const formatDate = (timestamp) => {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
+      
+      if (diff < 60000) return 'Vừa xong';
+      if (diff < 3600000) return `${Math.floor(diff/60000)} phút trước`;
+      if (diff < 86400000) return `${Math.floor(diff/3600000)} giờ trước`;
+      return date.toLocaleDateString('vi-VN');
+    };
+
+    const renderPagination = (totalPages) => {
+      const pagination = $('#pagination');
+      pagination.innerHTML = '';
+      
+      if (totalPages <= 1) return;
+      
+      const createBtn = (page, text = page, active = false, disabled = false) => {
+        const btn = document.createElement('button');
+        btn.innerHTML = text;
+        btn.className = `px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+          active 
+            ? 'bg-primary text-white' 
+            : disabled 
+              ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed' 
+              : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200'
+        }`;
+        if (!disabled) btn.onclick = () => { state.currentPage = page; renderPrompts(); };
+        return btn;
+      };
+      
+      // Previous
+      pagination.appendChild(createBtn(state.currentPage - 1, '<i class="fas fa-chevron-left"></i>', false, state.currentPage === 1));
+      
+      // Pages
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= state.currentPage - 1 && i <= state.currentPage + 1)) {
+          pagination.appendChild(createBtn(i, i, i === state.currentPage));
+        } else if (i === state.currentPage - 2 || i === state.currentPage + 2) {
+          pagination.appendChild(createBtn(i, '...', false, true));
+        }
+      }
+      
+      // Next
+      pagination.appendChild(createBtn(state.currentPage + 1, '<i class="fas fa-chevron-right"></i>', false, state.currentPage === totalPages));
+    };
+
+    const updateBulkActions = () => {
+      const count = state.selectedIds.size;
+      $('#bulkCount').textContent = count;
+      $('#bulkInfo').classList.toggle('hidden', count === 0);
+      $('#bulkDelete').classList.toggle('hidden', count === 0);
+    };
+
+    const clearSelection = () => {
+      state.selectedIds.clear();
+      $$('.bulk-select').forEach(cb => cb.checked = false);
+      updateBulkActions();
+    };
+
+    // ==================== ACTIONS ====================
+    const addOrUpdatePrompt = (e) => {
+      e.preventDefault();
+      
+      const title = $('#title').value.trim();
+      const content = $('#content').value.trim();
+      const category = $('#category').value.trim();
+      const tags = $('#tags').value.split(',').map(t => t.trim()).filter(Boolean);
+      
+      if (!title || !content || !category) {
+        showToast('Vui lòng điền đầy đủ thông tin *', 'warning');
+        return;
+      }
+      
+      const promptData = {
+        id: state.editingIndex >= 0 ? state.prompts[state.editingIndex].id : generateId(),
+        title,
+        content,
+        category,
+        tags: tags.length ? tags : undefined,
+        url: isUrl(content) ? content : undefined,
+        createdAt: state.editingIndex >= 0 ? state.prompts[state.editingIndex].createdAt : Date.now(),
+        modifiedAt: Date.now(),
+        copyCount: state.editingIndex >= 0 ? state.prompts[state.editingIndex].copyCount : 0
+      };
+      
+      if (state.editingIndex >= 0) {
+        // Update existing
+        addToUndo('update', { ...state.prompts[state.editingIndex] });
+        state.prompts[state.editingIndex] = promptData;
+        showToast('✓ Đã cập nhật prompt', 'success');
+        state.editingIndex = -1;
+        $('#submitText').textContent = 'Thêm';
+        $('#cancelEdit').classList.add('hidden');
+      } else {
+        // Add new
+        state.prompts.unshift(promptData);
+        showToast('✓ Đã thêm prompt mới', 'success');
+      }
+      
+      // Reset form
+      e.target.reset();
+      updateCategoryDatalist();
+      savePrompts();
+      renderPrompts();
+      state.currentPage = 1;
+    };
+
+    const editPrompt = (index) => {
+      const p = state.prompts[index];
+      $('#title').value = p.title;
+      $('#content').value = p.url || p.content;
+      $('#category').value = p.category;
+      $('#tags').value = p.tags?.join(', ') || '';
+      
+      state.editingIndex = index;
+      $('#submitText').textContent = 'Cập nhật';
+      $('#cancelEdit').classList.remove('hidden');
+      
+      // Scroll to form
+      $('#promptForm').scrollIntoView({ behavior: 'smooth' });
+      showToast('Chỉnh sửa: ' + p.title, 'info', 2000);
+    };
+
+    const cancelEdit = () => {
+      state.editingIndex = -1;
+      $('#promptForm').reset();
+      $('#submitText').textContent = 'Thêm';
+      $('#cancelEdit').classList.add('hidden');
+      showToast('Đã hủy chỉnh sửa', 'info', 1500);
+    };
+
+    const deletePrompt = async (index) => {
+      const p = state.prompts[index];
+      const confirmed = await confirmAction('Xóa prompt', `Bạn có chắc muốn xóa "${p.title}"?`);
+      
+      if (confirmed) {
+        addToUndo('delete', { ...p, index });
+        state.prompts.splice(index, 1);
+        savePrompts();
+        renderPrompts();
+        showToast('✓ Đã xóa prompt', 'success');
+        
+        // Auto undo option
+        setTimeout(() => {
+          if (state.undoStack.length && state.undoStack[state.undoStack.length-1].action === 'delete') {
+            showToast('💡 Nhấn Ctrl+Z để hoàn tác', 'info', 4000);
+          }
+        }, 1000);
+      }
+    };
+
+    const bulkDelete = async () => {
+      if (state.selectedIds.size === 0) return;
+      
+      const count = state.selectedIds.size;
+      const confirmed = await confirmAction('Xóa hàng loạt', `Xóa ${count} prompt đã chọn? Hành động này không thể hoàn tác.`);
+      
+      if (confirmed) {
+        const deleted = [];
+        state.prompts = state.prompts.filter(p => {
+          if (state.selectedIds.has(p.id)) {
+            deleted.push({ ...p });
+            return false;
+          }
+          return true;
+        });
+        
+        addToUndo('bulkDelete', deleted);
+        clearSelection();
+        savePrompts();
+        renderPrompts();
+        showToast(`✓ Đã xóa ${count} prompt`, 'success');
+      }
+    };
+
+    const copyPrompt = async (index) => {
+      const p = state.prompts[index];
+      try {
+        await navigator.clipboard.writeText(p.content);
+        p.copyCount = (p.copyCount || 0) + 1;
+        savePrompts();
+        renderPrompts();
+        showToast('✓ Đã sao chép vào clipboard!', 'success', 2000);
+      } catch {
+        showToast('Không thể sao chép', 'error');
+      }
+    };
+
+    const sharePrompt = async (index) => {
+      const p = state.prompts[index];
+      const shareData = {
+        title: p.title,
+        text: p.content,
+        url: window.location.href
+      };
+      
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          showToast('✓ Đã chia sẻ!', 'success');
+        } catch (e) {
+          if (e.name !== 'AbortError') showToast('Hủy chia sẻ', 'info');
+        }
+      } else {
+        // Fallback: copy link with prompt ID
+        const url = `${window.location.origin}${window.location.pathname}?prompt=${p.id}`;
+        await navigator.clipboard.writeText(url);
+        showToast('✓ Đã sao chép link chia sẻ!', 'success');
+      }
+    };
+
+    const exportPrompts = () => {
+      if (state.prompts.length === 0) {
+        showToast('Không có dữ liệu để xuất', 'warning');
+        return;
+      }
+      
+      const data = {
+        version: '2.0',
+        exportedAt: new Date().toISOString(),
+        prompts: state.prompts
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prompts-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      showToast('✓ Đã xuất file JSON', 'success');
+    };
+
+    const importPrompts = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        
+        // Handle both old and new format
+        const imported = Array.isArray(data) ? data : (data.prompts || []);
+        
+        if (!Array.isArray(imported)) {
+          throw new Error('Định dạng file không hợp lệ');
+        }
+        
+        // Validate and filter
+        const valid = imported.filter(p => 
+          p.title && p.content && p.category &&
+          typeof p.title === 'string' &&
+          typeof p.content === 'string'
+        );
+        
+        if (valid.length === 0) {
+          throw new Error('Không tìm thấy prompt hợp lệ');
+        }
+        
+        // Merge: skip duplicates by title+category
+        const existing = new Set(state.prompts.map(p => `${p.title}|${p.category}`));
+        const newPrompts = valid.filter(p => {
+          const key = `${p.title}|${p.category}`;
+          if (existing.has(key)) return false;
+          existing.add(key);
+          // Add missing fields
+          if (!p.id) p.id = generateId();
+          if (!p.createdAt) p.createdAt = Date.now();
+          return true;
+        });
+        
+        if (newPrompts.length === 0) {
+          showToast('Tất cả prompt đã tồn tại', 'info');
+          return;
+        }
+        
+        const confirmed = await confirmAction('Nhập prompt', `Tìm thấy ${newPrompts.length} prompt mới. Tiếp tục?`);
+        if (confirmed) {
+          state.prompts = [...newPrompts, ...state.prompts];
+          addToUndo('import', newPrompts);
+          savePrompts();
+          updateCategoryDatalist();
+          renderPrompts();
+          showToast(`✓ Đã nhập ${newPrompts.length} prompt`, 'success');
+        }
+      } catch (err) {
+        showToast('Lỗi: ' + err.message, 'error');
+      }
+      
+      e.target.value = '';
+    };
+
+    const undo = () => {
+      const last = state.undoStack.pop();
+      if (!last) {
+        showToast('Không có hành động để hoàn tác', 'info');
+        return;
+      }
+      
+      switch (last.action) {
+        case 'delete':
+          state.prompts.splice(last.data.index, 0, last.data);
+          showToast('✓ Đã hoàn tác xóa', 'success');
+          break;
+        case 'bulkDelete':
+          state.prompts = [...last.data, ...state.prompts];
+          showToast(`✓ Đã hoàn tác xóa ${last.data.length} prompt`, 'success');
+          break;
+        case 'update':
+          const idx = state.prompts.findIndex(p => p.id === last.data.id);
+          if (idx >= 0) state.prompts[idx] = last.data;
+          showToast('✓ Đã hoàn tác cập nhật', 'success');
+          break;
+        case 'import':
+          state.prompts = state.prompts.filter(p => !last.data.some(d => d.id === p.id));
+          showToast('✓ Đã hoàn tác nhập', 'success');
+          break;
+      }
+      
+      savePrompts();
+      renderPrompts();
+    };
+
+    // ==================== THEME ====================
+    const initTheme = () => {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (saved === 'dark' || (!saved && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+      
+      $('#themeToggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+      });
+    };
+
+    // ==================== EVENT LISTENERS ====================
+    const initEvents = () => {
+      // Form submit
+      $('#promptForm').addEventListener('submit', addOrUpdatePrompt);
+      $('#cancelEdit').addEventListener('click', cancelEdit);
+      
+      // Search with debounce
+      $('#search').addEventListener('input', debounce((e) => {
+        state.filters.search = e.target.value;
+        state.currentPage = 1;
+        renderPrompts();
+      }, CONFIG.debounceDelay));
+      
+      // Filters
+      $('#viewMode').addEventListener('change', (e) => {
+        state.filters.viewMode = e.target.value;
+        state.currentPage = 1;
+        renderPrompts();
+      });
+      
+      $('#sortBy').addEventListener('change', (e) => {
+        state.filters.sortBy = e.target.value;
+        state.currentPage = 1;
+        renderPrompts();
+      });
+      
+      $('#categoryFilter').addEventListener('change', (e) => {
+        state.filters.category = e.target.value;
+        state.currentPage = 1;
+        renderPrompts();
+      });
+      
+      // Bulk actions
+      $('#bulkDelete').addEventListener('click', bulkDelete);
+      
+      // Import
+      $('#importFile').addEventListener('change', importPrompts);
+      
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+Z: Undo
+        if (e.ctrlKey && e.key === 'z') {
+          e.preventDefault();
+          undo();
+        }
+        // Escape: Clear search / Cancel edit
+        if (e.key === 'Escape') {
+          if (state.editingIndex >= 0) {
+            cancelEdit();
+          } else {
+            $('#search').value = '';
+            state.filters.search = '';
+            renderPrompts();
+          }
+        }
+        // Ctrl+F: Focus search
+        if (e.ctrlKey && e.key === 'f') {
+          e.preventDefault();
+          $('#search').focus();
+        }
+      });
+      
+      // Prevent accidental page leave with unsaved changes (optional)
+      // window.addEventListener('beforeunload', (e) => {
+      //   if (state.editingIndex >= 0) {
+      //     e.preventDefault();
+      //     e.returnValue = '';
+      //   }
+      // });
+    };
+
+    // ==================== INIT ====================
+    const init = () => {
+      initTheme();
+      loadPrompts();
+      setupSpeechRecognition();
+      initEvents();
+      updateCategoryDatalist();
+      renderPrompts();
+      
+      // Show welcome toast for first time users
+      if (state.prompts.length === 0) {
+        setTimeout(() => {
+          showToast('🎉 Chào mừng! Hãy thêm prompt đầu tiên của bạn', 'info', 5000);
+        }, 1000);
+      }
+    };
+
+    // Start
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
